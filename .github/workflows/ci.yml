@@ -1,0 +1,167 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: TypeScript Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript strict check
+        run: npx tsc --noEmit
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage --reporter=verbose
+
+      - name: Upload coverage to Codecov
+        if: env.CODECOV_TOKEN != ''
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Check bundle size
+        run: |
+          APP_SIZE=$(stat -c %s dist/assets/index-*.js | head -1)
+          APP_GZIP=$(gzip -c dist/assets/index-*.js | head -1 | wc -c)
+          echo "App chunk: ${APP_SIZE} bytes (${APP_GZIP} gzipped)"
+          if [ "$APP_GZIP" -gt 102400 ]; then
+            echo "::error::App chunk too large: ${APP_GZIP} bytes (max 100KB gz)"
+            exit 1
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 7
+
+  perf:
+    name: Performance Audit
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Bundle stats
+        run: |
+          echo "## Bundle Stats" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size | Gzipped |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|---------|" >> $GITHUB_STEP_SUMMARY
+          for file in dist/assets/*.js dist/assets/*.css; do
+            if [ -f "$file" ]; then
+              size=$(stat -c %s "$file")
+              gz=$(gzip -c "$file" | wc -c)
+              printf "| %s | %s | %s |\n" "$(basename $file)" "$size" "$gz" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Check pixi is in separate chunk
+        run: |
+          if ! ls dist/assets/pixi-*.js 2>/dev/null; then
+            echo "::error::Pixi.js not lazy-loaded — should be in separate chunk"
+            exit 1
+          fi
+
+      - name: Check supabase is in separate chunk
+        run: |
+          if ! ls dist/assets/supabase-*.js 2>/dev/null; then
+            echo "::warning::Supabase not lazy-loaded — add dynamic import to Leaderboard.tsx"
+          fi
+
+  smoke:
+    name: Smoke Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run smoke
+        run: npm run smoke
