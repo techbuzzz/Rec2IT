@@ -12,7 +12,7 @@ A fast, shareable web game about the most painful part of modern hiring: 200 can
 
 | Menu | Briefing | Gameplay | QTE | End screen |
 |:---:|:---:|:---:|:---:|:---:|
-| ![](public/screenshots/01-menu.png) | ![](public/screenshots/02-briefing.png) | ![](public/screenshots/03-gameplay.png) | ![](public/screenshots/05-qte.png) | ![](public/screenshots/06-end.png) |
+| ![](public/screenshots/01-menu.png) | ![](public/screenshots/02-briefing.png) | ![](public/screenshots/03-gameplay.png) | ![](public/screenshots/04-qte.png) | ![](public/screenshots/05-end.png) |
 
 ## Features
 
