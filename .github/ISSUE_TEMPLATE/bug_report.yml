@@ -1,0 +1,97 @@
+name: 🐛 Bug Report
+description: Report a bug to help us improve
+title: "[BUG] "
+labels: ['bug', 'triage']
+assignees: []
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - 🔴 Critical (game crashes, data loss, security)
+        - 🟠 High (major feature broken)
+        - 🟡 Medium (feature partially broken)
+        - 🟢 Low (minor visual or UX issue)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Related Phase
+      options:
+        - Phase 1 - Prototype
+        - Phase 2 - QTE
+        - Phase 3 - Share Card
+        - Phase 4 - Leaderboard
+        - Phase 5 - Content
+        - Phase 6 - Virality
+        - Phase 7 - Soft Launch
+        - Phase 8 - Iterate
+        - Backlog
+        - Don't know
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & Version
+      placeholder: "Chrome 125, Safari 17, Firefox 126"
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: "iPhone 15, MacBook Pro M2, Desktop"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: What did you do to trigger the bug?
+      placeholder: |
+        1. Open the game
+        2. Pick role "Middle Backend"
+        3. Click "Start"
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: "The player should jump over the obstacle"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      placeholder: "The player collides with the obstacle even when jumping"
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console Output
+      description: Paste any errors from browser DevTools (F12 → Console)
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      placeholder: "Anything else that might help"
+    validations:
+      required: false

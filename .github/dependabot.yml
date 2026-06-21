@@ -1,0 +1,55 @@
+version: 2
+
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Moscow'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'techbuzzz'
+    labels:
+      - 'dependencies'
+      - 'npm'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+    groups:
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      pixi:
+        patterns:
+          - 'pixi.js'
+          - '@pixi/*'
+      dev:
+        patterns:
+          - 'vite'
+          - 'typescript'
+          - 'tailwindcss'
+          - '@vitejs/*'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    commit-message:
+      prefix: 'ci'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+
+  - package-ecosystem: 'supabase'
+    directory: '/supabase'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'supabase'

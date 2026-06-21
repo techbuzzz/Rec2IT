@@ -1,0 +1,72 @@
+name: ✨ Feature Request
+description: Suggest a new feature for the game
+title: "[FEATURE] "
+labels: ['enhancement', 'triage']
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Related Area
+      options:
+        - Gameplay (QTE, Roles, Modifiers)
+        - Content (Endings, Roles)
+        - Virality (Share Card, A/B)
+        - Leaderboard
+        - PWA / Mobile
+        - Accessibility
+        - Localization
+        - Monetization
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this solve?
+      placeholder: "Players want to share their run on Instagram but the share card is 1200×630 (Twitter-optimized), not 1080×1920 (Instagram)."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      placeholder: "Generate an Instagram-stories variant of the share card (1080×1920) and a separate 'Share to IG' button on EndScene."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      placeholder: "We could just crop the existing card, but it'd lose UI elements."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - High (impacts core loop or growth)
+        - Medium (nice-to-have)
+        - Low (polish)
+    validations:
+      required: false
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Success Metrics
+      placeholder: "Increase share-rate from 15% to 25% within 30 days."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+    validations:
+      required: false

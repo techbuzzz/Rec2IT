@@ -16,5 +16,28 @@ dist-ssr
 *.sln
 *.sw?
 coverage
+coverage/
 .vercel
+.vercel/
 *.tsbuildinfo
+*.tsbuildinfo.*
+
+# Test artifacts
+.nyc_output
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Bundle stats output
+bundle-stats.md
+
+# OS / editor
+Thumbs.db
+
+# Logs
+logs/
+*.log.*
+
+# Lock files (keep package-lock.json, ignore pnpm/yarn)
+pnpm-lock.yaml
+yarn.lock

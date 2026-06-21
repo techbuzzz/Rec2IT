@@ -1,0 +1,28 @@
+# Default owners for everything
+* @techbuzzz
+
+# Security-sensitive
+/supabase/ @techbuzzz
+/vercel.json @techbuzzz
+/.github/ @techbuzzz
+/.env.example @techbuzzz
+/src/systems/antiCheat.ts @techbuzzz
+/src/lib/supabase.ts @techbuzzz
+
+# Core gameplay
+/src/scenes/ @techbuzzz
+/src/data/ @techbuzzz
+/src/systems/store.ts @techbuzzz
+/src/systems/spawner.ts @techbuzzz
+/src/systems/collision.ts @techbuzzz
+
+# UI
+/src/ui/ @techbuzzz
+/src/App.tsx @techbuzzz
+/src/main.tsx @techbuzzz
+
+# Documentation
+/README.md @techbuzzz
+/TZ.md @techbuzzz
+/CHANGELOG.md @techbuzzz
+/PRESS_KIT.md @techbuzzz
