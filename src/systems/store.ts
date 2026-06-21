@@ -1,13 +1,14 @@
 /**
  * Zustand store — единый state для Pixi Canvas + React HTML.
- * Phase 1: core loop без QTE (QTE появится в Phase 2 как modal).
+ * Phase 2: добавлен QTE-стейт + триггер каждые QTE_INTERVAL_M метров.
  */
 
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import type { RunScene, Lane, ActiveEntity, RunStats, EndScreenData } from './types';
+import type { RunScene, Lane, ActiveEntity, RunStats, EndScreenData, QTEActiveState } from './types';
 import type { RoleId } from '@/data/roles';
 import { getRole } from '@/data/roles';
+import { QTE_INTERVAL_M, evaluateQTE, type QTE, type QTEResult } from '@/data/qtes';
 
 interface GameStore {
   scene: RunScene;
@@ -25,16 +26,20 @@ interface GameStore {
   slideUntilMs: number;
 
   // World
-  distance: number; // meters
+  distance: number;
   score: number;
   lives: number;
   combo: number;
   comboMultiplier: number;
   comboFreezeUntilMs: number;
-  speed: number; // px/sec
+  speed: number;
 
   // Entities
   entities: ActiveEntity[];
+
+  // QTE
+  qte: QTEActiveState | null;
+  nextQteDistance: number;
 
   // Stats
   stats: RunStats;
@@ -49,13 +54,13 @@ interface GameStore {
   pause: () => void;
   resume: () => void;
 
-  // Player actions
+  // Player
   moveLeft: () => void;
   moveRight: () => void;
   jump: () => void;
   slide: () => void;
 
-  // World ticks
+  // World
   tickDistance: (deltaMs: number) => void;
   addScore: (points: number) => void;
   collectPickup: (entityId: string) => void;
@@ -64,12 +69,20 @@ interface GameStore {
   // Entities
   spawnEntity: (entity: ActiveEntity) => void;
   pruneEntities: (cutoffX: number) => void;
+
+  // QTE
+  triggerQTE: (qte: QTE) => void;
+  resolveQTE: (result: QTEResult) => void;
+  skipQTE: () => void;
 }
 
 const initialStats: RunStats = {
   perfect: 0,
   ok: 0,
   fail: 0,
+  qtePerfect: 0,
+  qteOk: 0,
+  qteFail: 0,
   pickupsCollected: 0,
   obstaclesHit: 0,
   maxCombo: 0,
@@ -97,6 +110,8 @@ export const useGameStore = create<GameStore>()(
     speed: 280,
 
     entities: [],
+    qte: null,
+    nextQteDistance: QTE_INTERVAL_M,
     stats: { ...initialStats },
     endData: null,
 
@@ -120,24 +135,29 @@ export const useGameStore = create<GameStore>()(
         comboFreezeUntilMs: 0,
         speed: role.baseSpeed,
         entities: [],
+        qte: null,
+        nextQteDistance: QTE_INTERVAL_M,
         stats: { ...initialStats },
         endData: null,
       });
     },
 
     endRun: () => {
-      const { roleId, score, distance, stats } = get();
+      const { roleId, score, distance, stats, qte } = get();
       if (!roleId) return;
+      const lastResult = qte?.lastResult ?? null;
       set({
         scene: 'end',
         isRunning: false,
+        isPaused: false,
         endData: {
           score,
           distance,
-          durationMs: (distance / get().speed) * 1000,
+          durationMs: (distance / Math.max(1, get().speed)) * 1000,
           roleId,
           endingId: getRole(roleId).defaultEndingId,
           stats: { ...stats },
+          qteHistory: lastResult ? [lastResult] : [],
         },
       });
     },
@@ -161,11 +181,15 @@ export const useGameStore = create<GameStore>()(
         comboFreezeUntilMs: 0,
         speed: 280,
         entities: [],
+        qte: null,
+        nextQteDistance: QTE_INTERVAL_M,
         stats: { ...initialStats },
         endData: null,
       }),
 
-    pause: () => set({ isPaused: true }),
+    pause: () => {
+      if (get().isRunning && !get().qte) set({ isPaused: true });
+    },
     resume: () => set({ isPaused: false }),
 
     moveLeft: () => set((s) => ({ lane: Math.max(0, s.lane - 1) as Lane })),
@@ -193,8 +217,8 @@ export const useGameStore = create<GameStore>()(
 
     tickDistance: (deltaMs) => {
       const s = get();
-      if (!s.isRunning || s.isPaused) return;
-      const meters = (s.speed * deltaMs) / 1000 / 50; // 50px = 1 meter
+      if (!s.isRunning || s.isPaused || s.qte) return;
+      const meters = (s.speed * deltaMs) / 1000 / 50;
       set({ distance: s.distance + meters });
     },
 
@@ -219,11 +243,9 @@ export const useGameStore = create<GameStore>()(
       const s = get();
       const entity = s.entities.find((e) => e.id === entityId);
       if (!entity || entity.kind !== 'pickup') return;
-      const pickupConfig = s.entities; // already pruned
-      void pickupConfig;
-
       set({
         entities: s.entities.filter((e) => e.id !== entityId),
+        stats: { ...s.stats, pickupsCollected: s.stats.pickupsCollected + 1 },
       });
       get().addScore(15);
     },
@@ -233,11 +255,8 @@ export const useGameStore = create<GameStore>()(
       const entity = s.entities.find((e) => e.id === entityId);
       if (!entity || entity.kind !== 'obstacle') return;
 
-      // jump/slide immunity
       if (s.isJumping || s.isSliding) {
-        set({
-          entities: s.entities.filter((e) => e.id !== entityId),
-        });
+        set({ entities: s.entities.filter((e) => e.id !== entityId) });
         return;
       }
 
@@ -255,10 +274,71 @@ export const useGameStore = create<GameStore>()(
     },
 
     spawnEntity: (entity) => set((s) => ({ entities: [...s.entities, entity] })),
-
     pruneEntities: (cutoffX) =>
-      set((s) => ({
-        entities: s.entities.filter((e) => e.x > cutoffX),
-      })),
+      set((s) => ({ entities: s.entities.filter((e) => e.x > cutoffX) })),
+
+    triggerQTE: (qte) => {
+      const s = get();
+      if (!s.isRunning || s.qte) return;
+      set({
+        qte: {
+          qte,
+          startedAtMs: performance.now(),
+          lastResult: null,
+          triggerDistance: s.distance,
+        },
+        scene: 'qte',
+        isPaused: true,
+      });
+    },
+
+    resolveQTE: (result) => {
+      const s = get();
+      if (!s.qte) return;
+      const stats = { ...s.stats };
+      if (result.outcome === 'perfect') {
+        stats.qtePerfect += 1;
+        stats.perfect += 1;
+      } else if (result.outcome === 'ok') {
+        stats.qteOk += 1;
+        stats.ok += 1;
+      } else {
+        stats.qteFail += 1;
+        stats.fail += 1;
+      }
+      // combo: только perfect/ok увеличивают, fail сбрасывает
+      const newCombo = result.outcome === 'fail' ? 0 : s.combo + 1;
+      const role = s.roleId ? getRole(s.roleId) : null;
+      const cap = role?.maxComboMultiplier ?? 3.0;
+      const newMult = Math.min(
+        cap,
+        result.outcome === 'fail' ? 1.0 : 1 + Math.floor(newCombo / 5) * 0.5,
+      );
+      set({
+        score: s.score + result.scoreDelta,
+        combo: newCombo,
+        comboMultiplier: newMult,
+        stats,
+        qte: { ...s.qte, lastResult: result },
+      });
+    },
+
+    skipQTE: () => {
+      const s = get();
+      if (!s.qte) return;
+      // при exit через ESC считаем fail
+      const result = evaluateQTE(
+        s.qte.qte,
+        { kind: 'timeout' },
+        performance.now() - s.qte.startedAtMs,
+      );
+      get().resolveQTE(result);
+      set({
+        qte: null,
+        scene: 'run',
+        isPaused: false,
+        nextQteDistance: s.distance + QTE_INTERVAL_M,
+      });
+    },
   })),
 );

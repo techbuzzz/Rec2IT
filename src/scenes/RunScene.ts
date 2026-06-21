@@ -14,6 +14,7 @@ import { OBSTACLES } from '@/data/obstacles';
 import { PICKUPS } from '@/data/pickups';
 import { audioBus } from '@/systems/audioBus';
 import { telemetry } from '@/systems/telemetry';
+import { pickQTE, QTE_INTERVAL_M } from '@/data/qtes';
 const PLAYER_W = 60;
 const PLAYER_H = 80;
 const ENTITY_W = 60;
@@ -29,6 +30,8 @@ export class RunScene implements Scene {
   private currentSpawnIntervalMs = 1400;
   private parallaxOffset = 0;
   private processedEntityIds = new Set<string>();
+  private lastStepMs = 0;
+  private lastQteTriggerDistance = 0;
 
   // Layers
   private bgFar = new Graphics();
@@ -109,6 +112,27 @@ export class RunScene implements Scene {
     // distance & parallax
     s.tickDistance(dt);
     this.parallaxOffset = (this.parallaxOffset + (s.speed * dt) / 1000) % 240;
+
+    // step-tick audio (каждые 250мс)
+    this.lastStepMs += dt;
+    if (this.lastStepMs >= 250) {
+      this.lastStepMs = 0;
+      audioBus.step();
+    }
+
+    // QTE trigger каждые QTE_INTERVAL_M метров
+    if (s.distance - this.lastQteTriggerDistance >= QTE_INTERVAL_M) {
+      this.lastQteTriggerDistance = s.distance;
+      const roleId = s.roleId;
+      if (roleId) {
+        const qte = pickQTE(roleId);
+        s.triggerQTE(qte);
+        // pause: tickDistance не будет идти пока qte активен
+        this.lastFrameMs = performance.now();
+        this.raf = requestAnimationFrame(this.loop);
+        return;
+      }
+    }
 
     // spawner
     this.spawnAccumMs += dt;

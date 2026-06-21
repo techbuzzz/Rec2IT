@@ -1,6 +1,6 @@
 {
   "name": "job-interview-runner",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Endless runner × QTE about IT job interviews in 2026",
@@ -16,6 +16,7 @@
     "@pixi/react": "^7.1.2",
     "clsx": "^2.1.1",
     "framer-motion": "^11.5.4",
+    "html-to-image": "^1.11.11",
     "lucide-react": "^0.441.0",
     "pixi.js": "^8.2.6",
     "react": "^18.3.1",

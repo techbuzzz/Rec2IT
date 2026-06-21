@@ -85,7 +85,7 @@ export const GameUI = () => {
       <AnimatePresence mode="wait">
         {scene === 'menu' && <Menu key="menu" />}
         {scene === 'briefing' && <Briefing key="briefing" />}
-        {scene === 'qte' && <QTEOverlay key="qte" />}
+        {scene === 'qte' && <QTEOverlay key="qte" qte={useGameStore.getState().qte?.qte!} startedAtMs={useGameStore.getState().qte?.startedAtMs ?? 0} />}
         {scene === 'end' && <EndScene key="end" />}
       </AnimatePresence>
     </>
