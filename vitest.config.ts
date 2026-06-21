@@ -16,6 +16,9 @@ export default defineConfig({
         'src/main.tsx',
         'src/**/*.d.ts',
         'src/scenes/**', // Pixi v8 — needs WebGL
+        'src/lib/supabase.ts', // requires Supabase env + network — integration test only
+        'src/systems/telemetry.ts', // browser-only fetch + Plausible — integration test only
+        'src/App.tsx', // React router — integration/E2E only
       ],
       thresholds: {
         statements: 60,
