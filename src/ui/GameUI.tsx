@@ -6,10 +6,13 @@ import { Briefing } from './Briefing';
 import { HUD } from './HUD';
 import { QTEOverlay } from './QTEOverlay';
 import { EndScene } from './EndScene';
+import { ModifiersScreen } from './ModifiersScreen';
 import { audioBus } from '@/systems/audioBus';
 
 export const GameUI = () => {
   const scene = useGameStore((s) => s.scene);
+  const showModifiers = useGameStore((s) => s.showModifiers);
+  const qte = useGameStore((s) => s.qte);
   const moveLeft = useGameStore((s) => s.moveLeft);
   const moveRight = useGameStore((s) => s.moveRight);
   const jump = useGameStore((s) => s.jump);
@@ -85,9 +88,11 @@ export const GameUI = () => {
       <AnimatePresence mode="wait">
         {scene === 'menu' && <Menu key="menu" />}
         {scene === 'briefing' && <Briefing key="briefing" />}
-        {scene === 'qte' && <QTEOverlay key="qte" qte={useGameStore.getState().qte?.qte!} startedAtMs={useGameStore.getState().qte?.startedAtMs ?? 0} />}
+        {scene === 'qte' && qte && <QTEOverlay key="qte" qte={qte.qte} startedAtMs={qte.startedAtMs} />}
         {scene === 'end' && <EndScene key="end" />}
       </AnimatePresence>
+
+      {showModifiers && scene === 'briefing' && <ModifiersScreen />}
     </>
   );
 };

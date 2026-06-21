@@ -9,6 +9,7 @@ import type { RunScene, Lane, ActiveEntity, RunStats, EndScreenData, QTEActiveSt
 import type { RoleId } from '@/data/roles';
 import { getRole } from '@/data/roles';
 import { QTE_INTERVAL_M, evaluateQTE, type QTE, type QTEResult } from '@/data/qtes';
+import { applyModifiers as applyModsEffect, type Modifier } from '@/data/modifiers';
 
 interface GameStore {
   scene: RunScene;
@@ -40,6 +41,10 @@ interface GameStore {
   // QTE
   qte: QTEActiveState | null;
   nextQteDistance: number;
+
+  // Modifiers (Phase 5)
+  activeModifiers: Modifier[];
+  showModifiers: boolean;
 
   // Stats
   stats: RunStats;
@@ -74,6 +79,11 @@ interface GameStore {
   triggerQTE: (qte: QTE) => void;
   resolveQTE: (result: QTEResult) => void;
   skipQTE: () => void;
+
+  // Modifiers
+  applyModifiers: (mods: Modifier[]) => void;
+  showModifiersScreen: () => void;
+  hideModifiersScreen: () => void;
 }
 
 const initialStats: RunStats = {
@@ -112,6 +122,8 @@ export const useGameStore = create<GameStore>()(
     entities: [],
     qte: null,
     nextQteDistance: QTE_INTERVAL_M,
+    activeModifiers: [],
+    showModifiers: false,
     stats: { ...initialStats },
     endData: null,
 
@@ -137,6 +149,8 @@ export const useGameStore = create<GameStore>()(
         entities: [],
         qte: null,
         nextQteDistance: QTE_INTERVAL_M,
+        activeModifiers: [],
+        showModifiers: true, // Phase 5: показать News Flash
         stats: { ...initialStats },
         endData: null,
       });
@@ -183,6 +197,8 @@ export const useGameStore = create<GameStore>()(
         entities: [],
         qte: null,
         nextQteDistance: QTE_INTERVAL_M,
+        activeModifiers: [],
+        showModifiers: false,
         stats: { ...initialStats },
         endData: null,
       }),
@@ -340,5 +356,21 @@ export const useGameStore = create<GameStore>()(
         nextQteDistance: s.distance + QTE_INTERVAL_M,
       });
     },
+
+    applyModifiers: (mods) => {
+      const s = get();
+      if (!s.roleId) return;
+      const role = getRole(s.roleId);
+      const effect = applyModsEffect(mods);
+      set({
+        activeModifiers: mods,
+        speed: role.baseSpeed * effect.speedFactor,
+        lives: Math.max(1, role.startingLives + effect.livesBonus),
+        showModifiers: false,
+      });
+    },
+
+    showModifiersScreen: () => set({ showModifiers: true }),
+    hideModifiersScreen: () => set({ showModifiers: false }),
   })),
 );

@@ -235,8 +235,408 @@ const MIDDLE_QTES: QTE[] = [
 ];
 
 // ============================================================
+// DEVOPS / SRE (qteDifficulty: 3 — инфра, k8s)
+// ============================================================
+const DEVOPS_QTES: QTE[] = [
+  {
+    id: 'devops-k8s-bug',
+    type: 'spot-bug',
+    prompt: 'Найди: под ушёл в CrashLoopBackOff',
+    flavor: 'Production incident. Почини манифест.',
+    code: 'apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n  replicas: 3\n  template:\n    spec:\n      containers:\n      - name: api\n        image: api:v1.2.3\n        ports:\n        - containerPort: 8080\n        env:\n        - name: LOG_LEVEL\n          value: "debgu"',
+    bugRegions: [{ start: 290, end: 297, reason: '"debgu" → "debug"' }],
+    duration: 7000,
+    perfectScore: 70,
+    okScore: 35,
+    failPenalty: -20,
+  },
+  {
+    id: 'devops-pick-region',
+    type: 'single-choice',
+    prompt: 'Где НЕ стоит держать stateful сервис?',
+    flavor: 'Архитектурные антипаттерны.',
+    options: [
+      { id: 'a', label: 'Managed PostgreSQL', correct: false },
+      { id: 'b', label: 'EKS pod с emptyDir', correct: true },
+      { id: 'c', label: 'RDS Multi-AZ', correct: false },
+    ],
+    duration: 5000,
+    perfectScore: 60,
+    okScore: 30,
+    failPenalty: -20,
+  },
+  {
+    id: 'devops-hold-incident',
+    type: 'hold',
+    prompt: 'Удерживай incident call',
+    flavor: 'Postmortem пишется, пока боль свежа.',
+    action: '🚨 Incident',
+    holdMs: 2000,
+    okTolerance: 500,
+    duration: 5000,
+    perfectScore: 65,
+    okScore: 30,
+    failPenalty: -20,
+  },
+  {
+    id: 'devops-order-pipeline',
+    type: 'sequence',
+    prompt: 'Расставь CI/CD пайплайн',
+    flavor: 'Standard 12-factor pipeline.',
+    correctOrder: ['commit', 'lint', 'test', 'build', 'scan', 'deploy'],
+    items: [
+      { id: 'deploy', label: '🚀 Deploy' },
+      { id: 'lint', label: '🧹 Lint' },
+      { id: 'build', label: '📦 Build' },
+      { id: 'test', label: '✅ Test' },
+      { id: 'scan', label: '🔒 Scan' },
+      { id: 'commit', label: '💾 Commit' },
+    ],
+    duration: 12000,
+    perfectScore: 90,
+    okScore: 45,
+    failPenalty: -20,
+  },
+  {
+    id: 'devops-slider-replicas',
+    type: 'slider',
+    prompt: 'Auto-scale replicas target: 8',
+    flavor: 'HPA настраивается.',
+    metric: '📊 Replicas',
+    target: 8,
+    perfectTolerance: 2,
+    okTolerance: 6,
+    duration: 5000,
+    perfectScore: 60,
+    okScore: 30,
+    failPenalty: -20,
+  },
+];
+
+// ============================================================
+// ML ENGINEER (qteDifficulty: 3 — модель, данные)
+// ============================================================
+const ML_QTES: QTE[] = [
+  {
+    id: 'ml-tf-bug',
+    type: 'spot-bug',
+    prompt: 'Найди: loss в NaN',
+    flavor: 'Тренировка падает. Дедлайн горит.',
+    code: 'import tensorflow as tf\n\nmodel = tf.keras.Sequential([\n  tf.keras.layers.Dense(128, activation="relu"),\n  tf.keras.layers.Dense(10, activation="softmax")\n])\n\nmodel.compile(\n  optimizer="adam",\n  loss="binary_crossentropy",\n  metrics=["accuracy"]\n)',
+    bugRegions: [
+      { start: 195, end: 230, reason: '"binary_crossentropy" для 10-классовой классификации — нужен "categorical_crossentropy"' },
+    ],
+    duration: 8000,
+    perfectScore: 75,
+    okScore: 40,
+    failPenalty: -20,
+  },
+  {
+    id: 'ml-pick-augmentation',
+    type: 'single-choice',
+    prompt: 'Когда НЕ применять data augmentation?',
+    flavor: 'ML hygiene.',
+    options: [
+      { id: 'a', label: 'Мало данных (1000 примеров)', correct: false },
+      { id: 'b', label: 'Данные уже искусственно сгенерированы', correct: true },
+      { id: 'c', label: 'Имеются label noise', correct: false },
+    ],
+    duration: 6000,
+    perfectScore: 65,
+    okScore: 30,
+    failPenalty: -20,
+  },
+  {
+    id: 'ml-hold-train',
+    type: 'hold',
+    prompt: 'Удерживай training',
+    flavor: '10 эпох. Модель учится.',
+    action: '🎓 Train',
+    holdMs: 2500,
+    okTolerance: 600,
+    duration: 6000,
+    perfectScore: 70,
+    okScore: 35,
+    failPenalty: -20,
+  },
+  {
+    id: 'ml-order-pipeline',
+    type: 'sequence',
+    prompt: 'Расставь ML-пайплайн',
+    flavor: 'Data → Model → Deploy.',
+    correctOrder: ['collect', 'clean', 'train', 'eval', 'serve'],
+    items: [
+      { id: 'serve', label: '🚀 Serve' },
+      { id: 'eval', label: '📊 Evaluate' },
+      { id: 'train', label: '🎓 Train' },
+      { id: 'collect', label: '📥 Collect' },
+      { id: 'clean', label: '🧹 Clean' },
+    ],
+    duration: 10000,
+    perfectScore: 80,
+    okScore: 40,
+    failPenalty: -20,
+  },
+  {
+    id: 'ml-slider-lr',
+    type: 'slider',
+    prompt: 'Learning rate: 0.001',
+    flavor: 'Найди оптимальный шаг.',
+    metric: '📈 LR',
+    target: 1, // 0.001 * 1000 для UI
+    perfectTolerance: 1,
+    okTolerance: 5,
+    duration: 6000,
+    perfectScore: 65,
+    okScore: 30,
+    failPenalty: -20,
+  },
+];
+
+// ============================================================
+// PRODUCT MANAGER (qteDifficulty: 2 — приоритезация)
+// ============================================================
+const PM_QTES: QTE[] = [
+  {
+    id: 'pm-bug-spec',
+    type: 'spot-bug',
+    prompt: 'Найди: плохая формулировка требования',
+    flavor: 'Vague spec → баги в разработке.',
+    code: 'User Story:\nAs a user, I want the system\nto be fast and user-friendly\nand modern and cool.',
+    bugRegions: [
+      { start: 0, end: 80, reason: 'Нет конкретных метрик, нетестируемые критерии' },
+    ],
+    duration: 7000,
+    perfectScore: 55,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'pm-pick-metric',
+    type: 'single-choice',
+    prompt: 'Какая метрика — North Star?',
+    flavor: 'PM думает метриками.',
+    options: [
+      { id: 'a', label: 'DAU (Daily Active Users)', correct: true },
+      { id: 'b', label: 'Количество строк кода', correct: false },
+      { id: 'c', label: 'Цвет кнопки на лендинге', correct: false },
+    ],
+    duration: 5000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'pm-hold-stakeholder',
+    type: 'hold',
+    prompt: 'Удерживай stakeholder call',
+    flavor: 'Слушай боль. Не перебивай.',
+    action: '🤝 Sync',
+    holdMs: 1800,
+    okTolerance: 400,
+    duration: 4500,
+    perfectScore: 55,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'pm-order-rice',
+    type: 'sequence',
+    prompt: 'Расставь RICE-приоритизацию',
+    flavor: 'Reach · Impact · Confidence · Effort',
+    correctOrder: ['reach', 'impact', 'confidence', 'effort'],
+    items: [
+      { id: 'effort', label: '💪 Effort' },
+      { id: 'impact', label: '💥 Impact' },
+      { id: 'confidence', label: '🎯 Confidence' },
+      { id: 'reach', label: '👥 Reach' },
+    ],
+    duration: 10000,
+    perfectScore: 65,
+    okScore: 30,
+    failPenalty: -15,
+  },
+  {
+    id: 'pm-slider-conversion',
+    type: 'slider',
+    prompt: 'Целевая конверсия: 3.5%',
+    flavor: 'Funnel optimization.',
+    metric: '📈 CR %',
+    target: 35, // 3.5 * 10
+    perfectTolerance: 5,
+    okTolerance: 15,
+    duration: 6000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+];
+
+// ============================================================
+// QA ENGINEER (qteDifficulty: 2 — тесты, баги)
+// ============================================================
+const QA_QTES: QTE[] = [
+  {
+    id: 'qa-bug-test',
+    type: 'spot-bug',
+    prompt: 'Найди: flaky test',
+    flavor: 'Тест проходит только иногда.',
+    code: 'test("creates user", async () => {\n  const id = Date.now();\n  const user = await db.create({ id, name: "Alice" });\n  expect(user.id).toBe(12345);\n});',
+    bugRegions: [
+      { start: 95, end: 100, reason: 'Хардкоженный id вместо id из результата' },
+    ],
+    duration: 7000,
+    perfectScore: 60,
+    okScore: 30,
+    failPenalty: -15,
+  },
+  {
+    id: 'qa-pick-coverage',
+    type: 'single-choice',
+    prompt: 'Что важнее 100% coverage?',
+    flavor: 'QA метрики ≠ качество.',
+    options: [
+      { id: 'a', label: 'Покрытие edge cases', correct: true },
+      { id: 'b', label: 'Покрытие всех строк', correct: false },
+      { id: 'c', label: 'Количество тестов', correct: false },
+    ],
+    duration: 5000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'qa-hold-regression',
+    type: 'hold',
+    prompt: 'Удерживай regression suite',
+    flavor: 'Полный прогон. 2 часа. Можно кофе.',
+    action: '🧪 Test',
+    holdMs: 2200,
+    okTolerance: 500,
+    duration: 5500,
+    perfectScore: 60,
+    okScore: 30,
+    failPenalty: -15,
+  },
+  {
+    id: 'qa-order-bug',
+    type: 'sequence',
+    prompt: 'Жизненный цикл бага',
+    flavor: 'From new to closed.',
+    correctOrder: ['new', 'triaged', 'in_progress', 'fix', 'verified'],
+    items: [
+      { id: 'fix', label: '🔧 Fixed' },
+      { id: 'verified', label: '✓ Verified' },
+      { id: 'in_progress', label: '⚙️ In progress' },
+      { id: 'new', label: '🆕 New' },
+      { id: 'triaged', label: '🏷️ Triaged' },
+    ],
+    duration: 9000,
+    perfectScore: 65,
+    okScore: 30,
+    failPenalty: -15,
+  },
+  {
+    id: 'qa-slider-priority',
+    type: 'slider',
+    prompt: 'Severity баг-тикета: P1',
+    flavor: 'P0 — продакшен лежит. P1 — серьёзно.',
+    metric: '🚦 P',
+    target: 1,
+    perfectTolerance: 0,
+    okTolerance: 1,
+    duration: 5000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+];
+
+// ============================================================
+// MOBILE DEVELOPER (qteDifficulty: 2 — платформы, build)
+// ============================================================
+const MOBILE_QTES: QTE[] = [
+  {
+    id: 'mobile-bug-render',
+    type: 'spot-bug',
+    prompt: 'Найди: причина фризов UI',
+    flavor: '60fps пожелание, 12fps реальность.',
+    code: 'class FeedController {\n  loadItems() {\n    const items = await api.fetch();\n    for (let i = 0; i < items.length; i++) {\n      this.items.push(items[i]);\n    }\n    this.render();\n  }\n}',
+    bugRegions: [
+      { start: 130, end: 175, reason: 'Sync render в main thread без батчинга' },
+    ],
+    duration: 7000,
+    perfectScore: 55,
+    okScore: 30,
+    failPenalty: -15,
+  },
+  {
+    id: 'mobile-pick-store',
+    type: 'single-choice',
+    prompt: 'Где нельзя хранить API ключ?',
+    flavor: 'App rejected. Секреты в открытом виде.',
+    options: [
+      { id: 'a', label: 'Keychain (iOS)', correct: false },
+      { id: 'b', label: 'BuildConstants.kt', correct: true },
+      { id: 'c', label: 'Encrypted SharedPrefs', correct: false },
+    ],
+    duration: 5000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'mobile-hold-build',
+    type: 'hold',
+    prompt: 'Удерживай build',
+    flavor: 'Gradle 12 минут. Не прерывай.',
+    action: '🏗 Build',
+    holdMs: 2200,
+    okTolerance: 500,
+    duration: 5500,
+    perfectScore: 55,
+    okScore: 25,
+    failPenalty: -15,
+  },
+  {
+    id: 'mobile-order-release',
+    type: 'sequence',
+    prompt: 'Расставь релиз-пайплайн',
+    flavor: 'From code to App Store.',
+    correctOrder: ['code', 'test', 'archive', 'sign', 'upload', 'review'],
+    items: [
+      { id: 'review', label: '👀 Review' },
+      { id: 'upload', label: '☁️ Upload' },
+      { id: 'sign', label: '🔏 Sign' },
+      { id: 'code', label: '💻 Code' },
+      { id: 'archive', label: '📦 Archive' },
+      { id: 'test', label: '✅ Test' },
+    ],
+    duration: 10000,
+    perfectScore: 70,
+    okScore: 35,
+    failPenalty: -15,
+  },
+  {
+    id: 'mobile-slider-fps',
+    type: 'slider',
+    prompt: 'Target FPS: 60',
+    flavor: 'Smooth scroll budget.',
+    metric: '🎬 FPS',
+    target: 60,
+    perfectTolerance: 5,
+    okTolerance: 15,
+    duration: 5000,
+    perfectScore: 50,
+    okScore: 25,
+    failPenalty: -15,
+  },
+];
+
+// ============================================================
 // SENIOR FULL-STACK (qteDifficulty: 3 — system design)
 // ============================================================
+
 const SENIOR_QTES: QTE[] = [
   {
     id: 'senior-system-bug',
@@ -319,6 +719,11 @@ const QTE_BANK: Record<RoleId, QTE[]> = {
   'junior-frontend': JUNIOR_QTES,
   'middle-backend': MIDDLE_QTES,
   'senior-fullstack': SENIOR_QTES,
+  'devops': DEVOPS_QTES,
+  'ml-engineer': ML_QTES,
+  'product-manager': PM_QTES,
+  'qa-engineer': QA_QTES,
+  'mobile-developer': MOBILE_QTES,
 };
 
 /** Случайный QTE для роли (без повторов подряд через sessionStorage). */

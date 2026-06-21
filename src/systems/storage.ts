@@ -1,8 +1,10 @@
 /**
  * LocalStorage helpers — high scores per role.
+ * Поддержка всех 8 ролей через динамический ключ.
  */
 
 import type { RoleId } from '@/data/roles';
+import { ROLE_LIST } from '@/data/roles';
 
 const KEY_PREFIX = 'jobrun.highscore.';
 
@@ -26,10 +28,10 @@ export const setHighScore = (roleId: RoleId, score: number): boolean => {
   }
 };
 
-export const getAllHighScores = (): Record<RoleId, number> => {
-  return {
-    'junior-frontend': getHighScore('junior-frontend'),
-    'middle-backend': getHighScore('middle-backend'),
-    'senior-fullstack': getHighScore('senior-fullstack'),
-  };
+export const getAllHighScores = (): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const r of ROLE_LIST) {
+    out[r.id] = getHighScore(r.id);
+  }
+  return out;
 };

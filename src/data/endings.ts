@@ -83,7 +83,16 @@ const slugify = (s: string) =>
     .replace(/[^a-zа-я0-9]+/gi, '-')
     .replace(/^-|-$/g, '');
 
-const ROLES: RoleId[] = ['junior-frontend', 'middle-backend', 'senior-fullstack'];
+const ROLES: RoleId[] = [
+  'junior-frontend',
+  'middle-backend',
+  'senior-fullstack',
+  'devops',
+  'ml-engineer',
+  'product-manager',
+  'qa-engineer',
+  'mobile-developer',
+];
 
 export const ENDINGS: EndingTemplate[] = ROLES.flatMap((role) =>
   COMMON_ENDINGS.map((e) => ({

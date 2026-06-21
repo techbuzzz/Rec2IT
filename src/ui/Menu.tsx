@@ -29,7 +29,7 @@ export const Menu = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl mb-8">
         {ROLE_LIST.map((role, idx) => {
           const hi = getHighScore(role.id as RoleId);
           return (

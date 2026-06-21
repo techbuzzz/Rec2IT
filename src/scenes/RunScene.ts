@@ -134,9 +134,13 @@ export class RunScene implements Scene {
       }
     }
 
-    // spawner
+    // spawner (с учётом density модификатора)
+    const densityFactor = s.activeModifiers.some((m) => m.effect === 'spawn_density')
+      ? s.activeModifiers.filter((m) => m.effect === 'spawn_density').reduce((acc, m) => acc * m.factor, 1)
+      : 1;
+    const effectiveInterval = this.currentSpawnIntervalMs / densityFactor;
     this.spawnAccumMs += dt;
-    if (this.spawnAccumMs >= this.currentSpawnIntervalMs) {
+    if (this.spawnAccumMs >= effectiveInterval) {
       const next = spawnerStep(s.entities, s.distance, this.currentSpawnIntervalMs);
       this.currentSpawnIntervalMs = next.nextIntervalMs;
       this.spawnAccumMs = 0;

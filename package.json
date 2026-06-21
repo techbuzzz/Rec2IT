@@ -1,6 +1,6 @@
 {
   "name": "job-interview-runner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Endless runner × QTE about IT job interviews in 2026",
@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@pixi/react": "^7.1.2",
+    "@supabase/supabase-js": "^2.108.2",
     "clsx": "^2.1.1",
     "framer-motion": "^11.5.4",
     "html-to-image": "^1.11.11",
